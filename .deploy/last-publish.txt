@@ -1,9 +1,12 @@
 place_id=120093148075201
 universe_id=10751225282
-source_commit=a45c9a6845b5da1ea639cf30665f50ec52c874e4
-published_at_utc=2026-08-22T04:53:01Z
+source_commit=339f4937e946eb3ca52392794cc637034abcf08c
+published_at_utc=2026-08-22T18:02:53Z
 source_file=minershaven.rbxl
 publish_status=accepted_by_roblox_open_cloud
+permissions_http=403
+permissions_curl_exit=0
+permissions_response={"errors":[{"code":0,"message":"Forbidden"}]}
 activation_http=403
 activation_curl_exit=0
 activation_response={"errors":[{"code":0,"message":"Forbidden"}]}
