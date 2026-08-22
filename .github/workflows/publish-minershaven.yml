@@ -53,30 +53,44 @@ jobs:
             --header "Content-Type: application/octet-stream" \
             --data-binary @minershaven.rbxl
 
-      - name: Activate universe through Roblox Open Cloud
+      - name: Try to activate universe and capture Roblox response
+        id: activation
         shell: bash
         run: |
-          curl --fail-with-body --silent --show-error --location \
+          set +e
+          HTTP_CODE=$(curl --silent --show-error --location \
+            --output activation-response.txt \
+            --write-out "%{http_code}" \
             --request POST \
             "https://apis.roblox.com/legacy-develop/v1/universes/${UNIVERSE_ID}/activate" \
             --header "x-api-key: ${ROBLOX_API_KEY}" \
             --header "Content-Type: application/json" \
-            --data '{}'
+            --data '{}')
+          CURL_EXIT=$?
+          echo "http_code=${HTTP_CODE}" >> "$GITHUB_OUTPUT"
+          echo "curl_exit=${CURL_EXIT}" >> "$GITHUB_OUTPUT"
+          echo "Roblox activation HTTP ${HTTP_CODE}, curl exit ${CURL_EXIT}"
+          cat activation-response.txt || true
+          exit 0
 
-      - name: Record successful publication
+      - name: Record publication and activation result
         shell: bash
         run: |
           mkdir -p .deploy
+          RESPONSE=$(tr '\n' ' ' < activation-response.txt 2>/dev/null | tr -d '\r' | head -c 1500)
           {
             echo "place_id=${PLACE_ID}"
             echo "universe_id=${UNIVERSE_ID}"
             echo "source_commit=${GITHUB_SHA}"
             echo "published_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo "source_file=minershaven.rbxl"
-            echo "status=published_and_activation_requested"
+            echo "publish_status=accepted_by_roblox_open_cloud"
+            echo "activation_http=${{ steps.activation.outputs.http_code }}"
+            echo "activation_curl_exit=${{ steps.activation.outputs.curl_exit }}"
+            echo "activation_response=${RESPONSE}"
           } > .deploy/last-publish.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- .deploy/last-publish.txt
-          git commit -m "chore: record Miner's Haven publish" || exit 0
+          git commit -m "chore: record Roblox publish and activation result" || exit 0
           git push
