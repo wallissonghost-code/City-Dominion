@@ -17,12 +17,12 @@ permissions:
 jobs:
   publish:
     name: Publish private test build
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_place_id == '120093148075201') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[DEPLOY_ROBLOX]')) }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_place_id == '126097975795678') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[DEPLOY_ROBLOX]')) }}
     runs-on: ubuntu-latest
 
     env:
-      UNIVERSE_ID: "10751225282"
-      PLACE_ID: "120093148075201"
+      UNIVERSE_ID: "10753586700"
+      PLACE_ID: "126097975795678"
       ROBLOX_API_KEY: ${{ secrets.City_Dominion }}
 
     steps:
