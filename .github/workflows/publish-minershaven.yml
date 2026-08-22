@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish original Miner's Haven base
+    name: Publish private test build
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_place_id == '120093148075201') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[DEPLOY_ROBLOX]')) }}
     runs-on: ubuntu-latest
 
@@ -43,7 +43,7 @@ jobs:
           test -f minershaven.rbxl
           ls -lh minershaven.rbxl
 
-      - name: Publish original RBXL through Roblox Open Cloud
+      - name: Publish private test build through Roblox Open Cloud
         shell: bash
         run: |
           curl --fail-with-body --silent --show-error --location \
@@ -53,66 +53,21 @@ jobs:
             --header "Content-Type: application/octet-stream" \
             --data-binary @minershaven.rbxl
 
-      - name: Inspect universe permissions through Open Cloud
-        id: permissions
-        shell: bash
-        run: |
-          set +e
-          HTTP_CODE=$(curl --silent --show-error --location \
-            --output permissions-response.txt \
-            --write-out "%{http_code}" \
-            --request GET \
-            "https://apis.roblox.com/legacy-develop/v1/universes/${UNIVERSE_ID}/permissions" \
-            --header "x-api-key: ${ROBLOX_API_KEY}")
-          CURL_EXIT=$?
-          echo "http_code=${HTTP_CODE}" >> "$GITHUB_OUTPUT"
-          echo "curl_exit=${CURL_EXIT}" >> "$GITHUB_OUTPUT"
-          echo "Roblox permissions HTTP ${HTTP_CODE}, curl exit ${CURL_EXIT}"
-          cat permissions-response.txt || true
-          exit 0
-
-      - name: Try to activate universe and capture Roblox response
-        id: activation
-        shell: bash
-        run: |
-          set +e
-          HTTP_CODE=$(curl --silent --show-error --location \
-            --output activation-response.txt \
-            --write-out "%{http_code}" \
-            --request POST \
-            "https://apis.roblox.com/legacy-develop/v1/universes/${UNIVERSE_ID}/activate" \
-            --header "x-api-key: ${ROBLOX_API_KEY}" \
-            --header "Content-Type: application/json" \
-            --data '{}')
-          CURL_EXIT=$?
-          echo "http_code=${HTTP_CODE}" >> "$GITHUB_OUTPUT"
-          echo "curl_exit=${CURL_EXIT}" >> "$GITHUB_OUTPUT"
-          echo "Roblox activation HTTP ${HTTP_CODE}, curl exit ${CURL_EXIT}"
-          cat activation-response.txt || true
-          exit 0
-
-      - name: Record publication and diagnostics
+      - name: Record successful private publication
         shell: bash
         run: |
           mkdir -p .deploy
-          PERMISSIONS_RESPONSE=$(tr '\n' ' ' < permissions-response.txt 2>/dev/null | tr -d '\r' | head -c 2500)
-          ACTIVATION_RESPONSE=$(tr '\n' ' ' < activation-response.txt 2>/dev/null | tr -d '\r' | head -c 1500)
           {
             echo "place_id=${PLACE_ID}"
             echo "universe_id=${UNIVERSE_ID}"
             echo "source_commit=${GITHUB_SHA}"
             echo "published_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo "source_file=minershaven.rbxl"
+            echo "mode=private_test"
             echo "publish_status=accepted_by_roblox_open_cloud"
-            echo "permissions_http=${{ steps.permissions.outputs.http_code }}"
-            echo "permissions_curl_exit=${{ steps.permissions.outputs.curl_exit }}"
-            echo "permissions_response=${PERMISSIONS_RESPONSE}"
-            echo "activation_http=${{ steps.activation.outputs.http_code }}"
-            echo "activation_curl_exit=${{ steps.activation.outputs.curl_exit }}"
-            echo "activation_response=${ACTIVATION_RESPONSE}"
           } > .deploy/last-publish.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- .deploy/last-publish.txt
-          git commit -m "chore: record Roblox publish diagnostics" || exit 0
+          git commit -m "chore: record private Roblox test publish" || exit 0
           git push
