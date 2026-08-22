@@ -1,0 +1,72 @@
+name: Publish original Miner's Haven RBXL
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      confirm_place_id:
+        description: "Type the target Place ID to confirm publication"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish original Miner's Haven base
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_place_id == '120093148075201') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[DEPLOY_ROBLOX]')) }}
+    runs-on: ubuntu-latest
+
+    env:
+      UNIVERSE_ID: "10751225282"
+      PLACE_ID: "120093148075201"
+      ROBLOX_API_KEY: ${{ secrets.City_Dominion }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Roblox API key
+        shell: bash
+        run: |
+          if [ -z "$ROBLOX_API_KEY" ]; then
+            echo "Roblox API key secret City_Dominion is missing."
+            exit 1
+          fi
+
+      - name: Verify original RBXL exists
+        shell: bash
+        run: |
+          test -f minershaven.rbxl
+          ls -lh minershaven.rbxl
+
+      - name: Publish original RBXL through Roblox Open Cloud
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error --location \
+            --request POST \
+            "https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published" \
+            --header "x-api-key: ${ROBLOX_API_KEY}" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary @minershaven.rbxl
+
+      - name: Record successful publication
+        shell: bash
+        run: |
+          mkdir -p .deploy
+          {
+            echo "place_id=${PLACE_ID}"
+            echo "universe_id=${UNIVERSE_ID}"
+            echo "source_commit=${GITHUB_SHA}"
+            echo "published_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "source_file=minershaven.rbxl"
+            echo "status=accepted_by_roblox_open_cloud"
+          } > .deploy/last-publish.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- .deploy/last-publish.txt
+          git commit -m "chore: record Miner's Haven publish" || exit 0
+          git push
