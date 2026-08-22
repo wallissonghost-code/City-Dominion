@@ -1,7 +1,7 @@
-place_id=120093148075201
-universe_id=10751225282
-source_commit=3d19e6cf21190f9dd77e6f896174f7714cd1a193
-published_at_utc=2026-08-22T18:08:36Z
+place_id=126097975795678
+universe_id=10753586700
+source_commit=48f96dcb7c56ecd0b5aacc0404a7ca2410c0d487
+published_at_utc=2026-08-22T18:44:36Z
 source_file=minershaven.rbxl
 mode=private_test
 publish_status=accepted_by_roblox_open_cloud
