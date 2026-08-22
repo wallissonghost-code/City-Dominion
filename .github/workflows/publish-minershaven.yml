@@ -53,6 +53,16 @@ jobs:
             --header "Content-Type: application/octet-stream" \
             --data-binary @minershaven.rbxl
 
+      - name: Activate universe through Roblox Open Cloud
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error --location \
+            --request POST \
+            "https://apis.roblox.com/legacy-develop/v1/universes/${UNIVERSE_ID}/activate" \
+            --header "x-api-key: ${ROBLOX_API_KEY}" \
+            --header "Content-Type: application/json" \
+            --data '{}'
+
       - name: Record successful publication
         shell: bash
         run: |
@@ -63,7 +73,7 @@ jobs:
             echo "source_commit=${GITHUB_SHA}"
             echo "published_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo "source_file=minershaven.rbxl"
-            echo "status=accepted_by_roblox_open_cloud"
+            echo "status=published_and_activation_requested"
           } > .deploy/last-publish.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
