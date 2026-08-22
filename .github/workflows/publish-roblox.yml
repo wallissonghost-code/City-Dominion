@@ -1,0 +1,71 @@
+name: Publish to Roblox
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      confirm_place_id:
+        description: "Type the target Place ID to confirm publication"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Publish City Dominion
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm_place_id == '120093148075201') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[DEPLOY_ROBLOX]')) }}
+    runs-on: ubuntu-latest
+
+    env:
+      UNIVERSE_ID: "10751225282"
+      PLACE_ID: "120093148075201"
+      ROBLOX_API_KEY: ${{ secrets.City_Dominion }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Roblox API key is configured
+        shell: bash
+        run: |
+          if [ -z "$ROBLOX_API_KEY" ]; then
+            echo "Roblox API key secret is missing."
+            exit 1
+          fi
+
+      - name: Install Rojo
+        run: cargo install rojo --version 7.6.1 --locked
+
+      - name: Build place
+        run: rojo build default.project.json --output City-Dominion.rbxlx
+
+      - name: Publish place through Roblox Open Cloud
+        shell: bash
+        run: |
+          curl --fail-with-body --silent --show-error --location \
+            --request POST \
+            "https://apis.roblox.com/universes/v1/${UNIVERSE_ID}/places/${PLACE_ID}/versions?versionType=Published" \
+            --header "x-api-key: ${ROBLOX_API_KEY}" \
+            --header "Content-Type: application/xml" \
+            --data-binary @City-Dominion.rbxlx
+
+      - name: Record successful publication
+        shell: bash
+        run: |
+          mkdir -p .deploy
+          {
+            echo "place_id=${PLACE_ID}"
+            echo "universe_id=${UNIVERSE_ID}"
+            echo "source_commit=${GITHUB_SHA}"
+            echo "published_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "status=accepted_by_roblox_open_cloud"
+          } > .deploy/last-publish.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- .deploy/last-publish.txt
+          git commit -m "chore: record successful Roblox publish" || exit 0
+          git push
